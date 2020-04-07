@@ -8,7 +8,7 @@
         border: none;
         text-align: left;
         outline: none;
-        font-size: 15px;
+        font-size: 16px;
       }
       /* Add a background color to the button when you move the mouse over it (hover) */
       .collapsible:hover {
@@ -155,7 +155,13 @@
       }
       @media only screen and (max-width: 750px) {
         .transit {
-          font-size: 24px;
+          font-size: 24px; // make the transit-watch font smaller so it fits well on small screens
+        }
+        #stoppicker {
+          font-size: 16px; 
+        }
+        input {
+          font-size: 16px;  // make input fields at least 16px on small screens to avoid annoying iPhone
         }
       }
     </style>
@@ -310,7 +316,9 @@
                 <input type="checkbox" :id="transit.settings.elmID+'_beep'"
                       v-model="transit.doBeep" />
                 <label :for="transit.settings.elmID+'_beep'">Beep during Yellow Alert</label> <br/>
-                <span class="tooltiptext ttleft">Note: This setting is not saved if you re-load the page.</span>
+                <span class="tooltiptext ttleft hideOnMobile">
+                  Note: This setting is not saved if you re-load the page.
+                </span>
               </div><br/>
               <span v-if="transit.doBeep" >
                 with volume: <input v-model.number="transit.settings.beepVolume" min="0" max="300" type="number" /> 
@@ -390,16 +398,16 @@
             <span class="tooltip">
               Search Near Address: 
               <input v-model="address" v-on:keyup="detectEnter" v-on:blur="lookUpAddress" id="address"
-                   tabindex="1" />  
+                   tabindex="1" size="50"  />  
               <button hidden="hidden" v-on:click="lookUpAddress">Look Up Address</button> <!-- We don't need to SHOW 
                    this button, as it is triggered when hitting enter or tab from the address input. -->
-              <span class="tooltiptext ttright" v-show="!address" >
+              <span class="tooltiptext ttright hideOnMobile" v-show="!address" >
                 Look up the coordinates of an address near where you want to catch your bus, train, or ferry
                 by typing in the address and then pressing the tab key.</span>
             </span>
             <p/>
             <div class="tooltip" >
-              Route: <input v-model="route" list="routes" tabindex="2" v-on:keyup="blurOnDetectEnter"  >
+              Route: <input v-model="route" list="routes" tabindex="2" v-on:keyup="blurOnDetectEnter" size="15"  >
               <datalist id="routes" >
                 <div v-for="r in routes" >
                   <option :value="r">
@@ -437,7 +445,8 @@
               <br/>
               <div class="tooltip" style="padding:10px 0px" >
                 Nickname: <input id="nickname" v-model="nickname" tabindex="3"/> 
-                <span class="tooltiptext ttright">You may give the bus, train, or ferry you want to catch a nickname.
+                <span class="tooltiptext ttright hideOnMobile">
+                  You may give the bus, train, or ferry you want to catch a nickname.
                 </span>
               </div>
             </div>  <!-- END stopoptions -->
