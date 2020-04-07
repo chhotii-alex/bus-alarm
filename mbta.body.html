@@ -149,6 +149,15 @@
           font-size: 0.5em;
         }
       }
+      .transit {
+        font-weight:bold;
+        font-size:3em;
+      }
+      @media only screen and (max-width: 750px) {
+        .transit {
+          font-size: 24px;
+        }
+      }
     </style>
     <div id="timeapp"  >
       <button v-on:click="toggleVisibility" type="button" :class="collapseButtonClass"> 
@@ -268,7 +277,7 @@
           </legend>
           <div class="row">
             <div :class="transit.nextBusWidthClass" >
-              <div v-show="transit.showDetail" style="font-weight:bold;font-size:3em" > 
+              <div v-show="transit.showDetail" class="transit" > 
                 Next {{ transit.settings.route }} {{ transit.settings.transitType }}  
                 from {{ transit.settings.stopName }} </br>
                 going {{ transit.settings.direction }}: </br>
@@ -354,88 +363,96 @@
       </button>
       <div v-show="visible" >  <!-- use v-show not v-if because Google map 
                                  doesn't like being taken out and added back to the DOM -->
-        <div id="map" v-show="latitude" ></div>  
-        <br/>
-        <span class="tooltip">
-          Search Near Address: 
-          <input v-model="address" v-on:keyup="detectEnter" v-on:blur="lookUpAddress" id="address"
-                 tabindex="1" >  
-          <button hidden="hidden" v-on:click="lookUpAddress">Look Up Address</button> <!-- We don't need to SHOW 
-               this button, as it is triggered when hitting enter or tab from the address input. -->
-          <span class="tooltiptext ttright" v-show="!address" >
-            Look up the coordinates of an address near where you want to catch your bus, train, or ferry
-            by typing in the address and then pressing the tab key.</span>
-        </span>
-        <span class="hideOnMobile" >
-          <div class="tooltip">
-            Latitude: <input v-model="latitude" >
-            <span class="tooltiptext ttleft">
-              If you know the coordinates of where you want to catch your bus, train, or ferry from, you can fill
-              them in here. Otherwise, no worries; searching on an address will look up the coordinates for you;
-              and moving around in the map will update the coordinates.
-            </span>
+        <div class="row">
+          <div class="col-6" >
+            <div id="map" v-show="latitude" ></div>  
           </div>
-          <div class="tooltip">
-            Longitude: <input v-model="longitude" > <br/>
-            <span class="tooltiptext ttleft">
-              If you know the coordinates of where you want to catch your bus, train, or ferry from, you can fill
-              them in here. Otherwise, no worries; searching on an address will look up the coordinates for you;
-              and moving around in the map will update the coordinates.
-            </span>
-          </div>
-        </span>
-        <p/>
-        <div class="tooltip" >
-          Route: <input v-model="route" list="routes" tabindex="2" v-on:keyup="blurOnDetectEnter"  >
-          <datalist id="routes" >
-            <div v-for="r in routes" >
-              <option :value="r">
+          <div class="col-6" >
+            <div class="hideOnMobile" >
+              <div class="tooltip">
+                Latitude: <input v-model="latitude" />
+                <span class="tooltiptext ttleft">
+                  If you know the coordinates of where you want to catch your bus, train, or ferry from, you can fill
+                  them in here. Otherwise, no worries; searching on an address will look up the coordinates for you;
+                  and moving around in the map will update the coordinates.
+                </span>
+              </div>
+              <div class="tooltip">
+                Longitude: <input v-model="longitude" > <br/>
+                <span class="tooltiptext ttleft">
+                  If you know the coordinates of where you want to catch your bus, train, or ferry from, you can fill
+                  them in here. Otherwise, no worries; searching on an address will look up the coordinates for you;
+                  and moving around in the map will update the coordinates.
+                </span>
+              </div>
+              <p/>
             </div>
-          </datalist>
-          <span class="tooltiptext ttright hideOnMobile" v-show="!route" >
-            Type in the bus number or line color to search. To list commuter rail lines, enter "cr". 
-            To list ferries, enter "boat". Select from the list to get the exact identifier of the transit
-            you want to choose.
-          </span>
-        </div>
-        <div id="stop_options" >
-          <div class="tooltip" v-show="route" style="padding:5px"  >
-            <div v-for="direction in directions">
-              <input type="radio" :id="direction.label" :value="direction.id" 
-                v-model="pickedDirection" >
-              <label :for="direction.label"> {{ direction.name }} </label>
+            <span class="tooltip">
+              Search Near Address: 
+              <input v-model="address" v-on:keyup="detectEnter" v-on:blur="lookUpAddress" id="address"
+                   tabindex="1" />  
+              <button hidden="hidden" v-on:click="lookUpAddress">Look Up Address</button> <!-- We don't need to SHOW 
+                   this button, as it is triggered when hitting enter or tab from the address input. -->
+              <span class="tooltiptext ttright" v-show="!address" >
+                Look up the coordinates of an address near where you want to catch your bus, train, or ferry
+                by typing in the address and then pressing the tab key.</span>
+            </span>
+            <p/>
+            <div class="tooltip" >
+              Route: <input v-model="route" list="routes" tabindex="2" v-on:keyup="blurOnDetectEnter"  >
+              <datalist id="routes" >
+                <div v-for="r in routes" >
+                  <option :value="r">
+                </div>
+              </datalist>
+              <span class="tooltiptext ttright hideOnMobile" v-show="!route" >
+                Type in the bus number or line color to search. To list commuter rail lines, enter "cr". 
+                To list ferries, enter "boat". Select from the list to get the exact identifier of the transit
+                you want to choose.
+              </span>
             </div>
-            <span class="tooltiptext ttright hideOnMobile" v-show="!isDirectionPicked" >
-              You must pick the direction you want to travel in. 
-            </span>
-          </div>
-          <br/>
-          <div v-show="route && isDirectionPicked" style="height:4em;padding:5px" class="tooltip" >
-            <em> {{ nostop }} </em>
-            <div v-for="stop in stops">
-              <input type="radio" :id="stop.label" :value="stop.id"  v-model="pickedStop">
-              <label :for="stop.label"> {{ stop.name }} </label>
+            <div id="stop_options" >
+              <div class="tooltip" v-show="route" style="padding:5px"  >
+                <div v-for="direction in directions">
+                  <input type="radio" :id="direction.label" :value="direction.id" 
+                    v-model="pickedDirection" />
+                  <label :for="direction.label"> {{ direction.name }} </label>
+                </div>
+                <span class="tooltiptext ttright hideOnMobile" v-show="!isDirectionPicked" >
+                  You must pick the direction you want to travel in. 
+                </span>
+              </div>
+              <br/>
+              <div v-show="route && isDirectionPicked" style="height:4em;padding:5px" class="tooltip" >
+                <em> {{ nostop }} </em>
+                <div v-for="stop in stops">
+                  <input type="radio" :id="stop.label" :value="stop.id"  v-model="pickedStop" />
+                  <label :for="stop.label"> {{ stop.name }} </label>
+                </div>
+                <span class="tooltiptext ttright hideOnMobile" v-show="!pickedStop" >
+                  Which stop is convenient to you? (You can scroll the map to find other stops.)
+                </span>
+                <p/>
+              </div>
+              <br/>
+              <div class="tooltip" style="padding:10px 0px" >
+                Nickname: <input id="nickname" v-model="nickname" tabindex="3"/> 
+                <span class="tooltiptext ttright">You may give the bus, train, or ferry you want to catch a nickname.
+                </span>
+              </div>
+            </div>  <!-- END stopoptions -->
+            <div class="tooltip" style="float:right" >
+              <button :disabled="!addStopSeen" v-on:click="addStop" :class="addStopStyle"
+                     style="font-size:15px;border:none;background-color:MEDIUMSPRINGGREEN;padding:10px;margin:5px;">
+                <b>Add Stop to Watch List</b>
+              </button>
+              <span class="tooltiptext ttleft hideOnMobile" >
+                {{ addStopTooltip }} 
+              </span>
             </div>
-            <span class="tooltiptext ttright hideOnMobile" v-show="!pickedStop" >
-              Which stop is convenient to you? (You can scroll the map to find other stops.)
-            </span>
-          </div>
-          <br/>
-          <div class="tooltip" >Nickname: <input id="nickname" v-model="nickname" tabindex="3"> 
-            <span class="tooltiptext ttright">You may give the bus, train, or ferry you want to catch a nickname.
-            </span>
-          </div>
-          <div class="tooltip" style="float:right" >
-            <button :disabled="!addStopSeen" v-on:click="addStop" :class="addStopStyle"
-                   style="font-size:15px;border:none;background-color:MEDIUMSPRINGGREEN;padding:10px;margin:5px;">
-              <b>Add Stop to Watch List</b>
-            </button>
-            <span class="tooltiptext ttleft hideOnMobile" >
-              {{ addStopTooltip }} 
-            </span>
-          </div>
-        </div> <!-- END stop-options -->
-      </div>
+          </div> <!-- END col-6 -->
+        </div> <!-- END row -->
+      </div>  <!-- END if-visible -->
     </div>  <!-- END stopPickerVue's el -->
   </body>
   <script src="mbtakey.js" ></script>
