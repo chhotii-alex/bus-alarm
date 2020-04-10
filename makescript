@@ -1,1 +1,2 @@
 include mbta.html.include >mbta.html
+include mbtakey.js.include >mbtakey.js
