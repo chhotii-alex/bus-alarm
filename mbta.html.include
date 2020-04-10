@@ -3,7 +3,11 @@
 <!DOCTYPE html>
 <html lang="en" >
   <head>
-    <title>Bus Alarm</title>
+    <title>Bus Alarm
+##if ##DEMO##
+       Demo Page
+##end
+    </title>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
@@ -481,6 +485,64 @@
     </div>  <!-- END stopPickerVue's el -->
   </body>
   <script src="mbtakey.js" ></script>
+  <script>
+##if ##DEMO##
+paramIsDemo = true;
+paramInitialSettings = [
+        {
+            "nickname": "Jack's bus to work",
+            "direction": "Outbound to Arlington Heights",
+            "direction_id": 0,
+            "route": "77",
+            "transitType": "bus",
+            "stop": "2319",
+            "stopName": "Massachusetts Ave opp Rindge Ave",
+            "ignoreImmediateBusses": true,
+            "ignoreEarlyBusses": false,
+            "earlyTime": "08:30",
+            "immediateThreshold": 1,
+            "redMinutes": 5,
+            "yellowMinutes": 10,
+            "greenMinutes": 15,
+            "beepVolume": 100,
+            "beepFreq": 220,
+            "beepDuration": 300,
+            "minBeepTime": "07:00",
+            "maxBeepTime": "09:00",
+            "repeatInterval": 5,
+            "elmID": "tr446"
+        },
+        {
+            "nickname": "Wendy's T to work",
+            "direction": "South to Ashmont/Braintree",
+            "direction_id": 0,
+            "route": "Red",
+            "transitType": "train",
+            "stop": "place-davis",
+            "stopName": "Davis",
+            "ignoreImmediateBusses": true,
+            "ignoreEarlyBusses": false,
+            "earlyTime": "08:30",
+            "immediateThreshold": "5",
+            "redMinutes": 10,
+            "yellowMinutes": 15,
+            "greenMinutes": 25,
+            "beepVolume": 80,
+            "beepFreq": 260,
+            "beepDuration": 300,
+            "minBeepTime": "07:00",
+            "maxBeepTime": "21:00",
+            "repeatInterval": 1,
+            "elmID": "tr74"
+        },
+];
+paramShowUserManualOnFirstView = false;
+##else
+paramIsDemo = false;
+paramInitialSettings = [];
+paramShowUserManualOnFirstView = true;
+##end
+  </script>
   <script src="mbtafetch.js" ></script>
 <!--
   

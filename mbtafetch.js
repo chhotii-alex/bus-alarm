@@ -436,7 +436,7 @@ SOFTWARE.
       el: '#helppage',
       data: {},
       mounted () {
-        if (!(this.wasUserHelpSeen())) {
+        if (paramShowUserManualOnFirstView && !(this.wasUserHelpSeen())) {
           this.visible = true;
           Vue.nextTick(function() {
             document.getElementById('helppage').scrollIntoView();
@@ -579,7 +579,10 @@ SOFTWARE.
         },
         retrieveSettings: function() {
           let savedBusses = getStorageData("bus");
-          if (savedBusses) {
+	    if (!(savedBusses && savedBusses.length)) {
+	      savedBusses = paramInitialSettings;
+          }
+          if (savedBusses && savedBusses.length) {
             for (i = 0; i < savedBusses.length; ++i) {
               if (savedBusses[i]) {
                 let item = new Transit(savedBusses[i]);
@@ -726,7 +729,9 @@ SOFTWARE.
           tickTime();
         },
         allSettings() {
-          setStorageString("bus", this.allSettings);
+	    if (!paramIsDemo) {
+            setStorageString("bus", this.allSettings);
+	  }
         },
         /* The one setting regarding beeps that we need to watch, so as to meddle with anything when it changes,
          is the repeat interval. (Don't need to watch the others because a new beep object is created at each beep.)
