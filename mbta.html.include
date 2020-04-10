@@ -1,3 +1,510 @@
-##include mbta.head.html
-##include googkey.html
-##include mbta.body.html
+##env GOOGLE_MAPS_KEY
+
+<!DOCTYPE html>
+<html lang="en" >
+  <head>
+    <title>Bus Alarm</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> 
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript" 
+       src="https://maps.googleapis.com/maps/api/js?key=##GOOGLE_MAPS_KEY##&libraries=places">
+    </script>
+    <style>
+      /* Related to making collapsable sections */
+      .collapsible {
+        background-color: "white";
+        cursor: pointer;
+        padding: 18px;
+        width: 100%;
+        border: none;
+        text-align: left;
+        outline: none;
+        font-size: 16px;
+      }
+      /* Add a background color to the button when you move the mouse over it (hover) */
+      .collapsible:hover {
+        background-color: #eee;
+      }
+      /* Making tool tips */
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 200px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px 0;
+        position: absolute;
+        z-index: 1;
+        top: -5px;
+      }
+      .ttright {
+        left: 105%;
+      }
+      .ttleft {
+        right: 110%;
+      }
+      .tooltip .tooltiptext::after {
+        content: " ";
+        position: absolute;
+        top: 50%;
+        margin-top: -5px;
+        border-width: 5px;
+        border-style: solid;
+      }
+      .ttleft::after {
+        left: 100%;
+        border-color: transparent transparent transparent black;
+      }
+      .ttright::after {
+        right: 100%;
+        border-color: transparent black transparent transparent;
+      }
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+      }
+      /* Other stuff  */
+      #timeString {
+        font-size: 6em;
+        font-weight: bold;
+        text-align: center;
+      }
+      #timeapp {
+        position: -webkit-sticky; /* Safari */
+        position: sticky;
+        top: 0;
+        background-color: white;
+      }
+      div.helptext {
+        border-style: solid;
+        border-width: 1px;
+        background-color: BlanchedAlmond;
+        margin: 5px;
+        padding: 2px;
+      }
+      p.transitAlert {
+        border-style: solid;
+        border-width: 1px;
+        font-size: 10px;
+      }
+      fieldset.details {   // kind of a hack? makes it so that position: absolute works for children
+        position: relative;
+      }
+      button.corner {
+        float: right;
+      }
+      #map {
+        height: 200px;
+      }
+      .intextbutton {
+        border: none;
+        background-color: Transparent;
+        outline: none;
+      }
+      /* Animation effects */
+      @keyframes shadow-pulse {
+        0% {
+          box-shadow: 0 0 0 0px rgba(0, 0, 0, 0.2);
+        }
+        100% {
+          box-shadow: 0 0 0 35px rgba(0, 0, 0, 0);
+        }
+      }
+      .pulsing {
+        animation: shadow-pulse 1s infinite;
+      }
+      /* Relevant to making the layout responsive: */
+      * {
+        box-sizing: border-box;
+      }
+      .row::after {
+        content: "";
+        clear: both;
+        display: table;
+      }
+      [class*="col-"] {
+        float: left;
+        padding: 15px;
+      }
+      /* For mobile phones: */
+      [class*="col-"] {
+        width: 100%;
+      }
+      @media only screen and (min-width: 600px) {
+        /* For desktop and tablet: */
+        .col-1 {width: 8.33%;}
+        .col-2 {width: 16.66%;}
+        .col-3 {width: 25%;}
+        .col-4 {width: 33.33%;}
+        .col-5 {width: 41.66%;}
+        .col-6 {width: 50%;}
+        .col-7 {width: 58.33%;}
+        .col-8 {width: 66.66%;}
+        .col-9 {width: 75%;}
+        .col-10 {width: 83.33%;}
+        .col-11 {width: 91.66%;}
+        .col-12 {width: 100%;}
+      }
+      /* If the screen size is 600px wide or less, hide some elements */
+      @media only screen and (max-width: 600px) {
+        .hideOnMobile {
+          display: none;
+        }
+      }
+      @media only screen and (max-width: 750px) {
+        .smallOnMobile {
+          font-size: 0.5em;
+        }
+      }
+      .transit {
+        font-weight:bold;
+        font-size:3em;
+      }
+      @media only screen and (max-width: 750px) {
+        .transit {
+          font-size: 24px; // make the transit-watch font smaller so it fits well on small screens
+        }
+        #stoppicker {
+          font-size: 16px; 
+        }
+        input {
+          font-size: 16px;  // make input fields at least 16px on small screens to avoid annoying iPhone
+        }
+      }
+    </style>
+    <div id="timeapp"  >
+      <button v-on:click="toggleVisibility" type="button" :class="collapseButtonClass"> 
+        <i :class="iconClass"></i>
+        {{ command }} Current Time
+      </button> 
+      <div id="timeString" v-show="visible" >
+        <div class="row">
+          <div class="col-8 smallOnMobile">
+            {{ timeString }}
+          </div>
+          <div class="col-4 hideOnMobile">
+            <canvas id="clock" width="100" height="100" style="background-color:white"></canvas>
+          </div>  
+        </div>
+      </div>
+    </div>
+    <div id="helppage" >
+      <button v-on:click="toggleVisibility" type="button" :class="collapseButtonClass"> 
+        <i :class="iconClass"></i>
+        {{ command }} User Manual
+      </button> 
+      <div class="helptext" v-show="visible" >
+         Welcome to the Bus Alarm, a handy tool for helping you keep track of when your Boston-area
+        <a href="https://mbta.com/" target=”_blank” >MBTA</a> 
+             bus, trolly, or other mode of transport is expected to be at your nearest
+      stop. Keeping an eye on these predictions is especially helpful if you need to catch an infrequently-running
+       bus. Don't you just hate standing by the side of the road, in the weather, waiting at the bus stop for half an
+         hour or more? Keep a close eye on those predictions, and you can spend up to the last reasonable moment
+        in your warm, dry home or office before scampering to the bus stop (or T stop, or ferry dock...) 
+         just in time! <p/>
+         <h3>Disclaimer on the Bus Alarm predictions</h3>
+            Bus Alarm advises you on when to head out the door based on a feed of real-time predictions provided by
+         the MBTA. The MBTA does the best it can to predict when each bus, train, or trolley out there will arrive
+         at and depart from each stop on its route, based on real-time GPS tracking of each vehicle, its planned
+         schedule, and past data. However, traffic and commuters are inherently chaotic. Who knows when a bus that
+         normally takes 5 minutes to get from point A to point B will hit a traffic snag, and leave you waiting
+         much longer&mdash; or, conversely, and bus that takes 15 minutes to fight through the typical rush-hour
+          snarls will cruise along in an unexpected spell of smooth sailing. Often the MBTA's predictions on when
+            your bus will come are uncannily accurate; however it <em>will happen</em> that sometimes the 
+          prediction will be <em>astonishingly wrong</em>. So, please:
+          <ul>
+          <li>If you <em>must</em> catch a particular bus, plan to get to the stop <em>early</em>.</li>
+          <li>Be prepared to wait. I'm trying to minimize your waiting at your stop with this tool. But I'm not
+            psychic, and I can't do anything about the stupidity of traffic. Bring something to read while you
+             wait (but don't get too absorbed, because a bus driver may not stop to pick you up if you appear
+             to be ignoring the bus!)</li>
+          <li>Lobby your State Legislature for more transportation funding going to the MBTA, so that they can
+             bring you more-frequent buses, and less transportation funding going to <em>cars</em>, which are agents
+            of traffic chaos.</li>
+          </ul>
+          Also note that the MBTA revises predictions as each vehicle is en route. Thus, you may see the time until
+          your bus will arrive smoothly counting down, and then suddenly jump up. This is normal; the prediction
+          was revised when the bus hit a delay. If you have your Bus Alarm set to ignore buses that are coming too
+          soon for you to possibly catch, you may even see times fluctuate from, say, 6 minutes to 60 minutes and 
+          back to 6. The Bus Alarm revises its decision on whether to show you the bus that's almost at your stop
+          as the arrival time prediction is revised... so you can revise your decision regarding whether to scramble
+          out the door now, or wait.
+        <h3> Setting up your Bus Alarms</h3>
+        First, specify where you are, and which bus, train, or ferry you want to catch, in which direction.
+         If you don't see the map, open the "Route, Direction, and Stop Picker" at the bottom of the page. 
+        If you know your latitude and longitude, you can type those in; or, you can have the Google Map look up the
+          coordinates of any address by typing it into the Search Near Address field and hitting the tab key; or, 
+        you can drag your location into view inside the map.<p/>
+          Next, search for a route: a bus number, or a train or trolley line, or a boat. Start typing the bus number,
+         T color, train destination, or boat identifier into the Route field, and pick from the list of matches. 
+        Pick the direction you want to travel in, then pick the stop you want to wait at. Optionally, you can enter
+        a nickname for this set of settings&mdash; "bus to work" or "Jack's bus", for example.<p/>
+        As soon as you click "Add Stop to Watch List", a new Bus Alarm is added to your page. Your browser will 
+        remember your Bus Alarms, so even if you reboot your computer, next time you come to this page, you will
+        get the same list.
+        <h3>Focusing on your currently relevant Bus Alarm</h3>
+        Suppose you have 2 alarms, "bus to work" and "bus to tennis club". You have to go to work now; so the details 
+         on when the bus to the tennis club is coming are, sadly, not relevant to you right now. You can minimize
+        those details by clicking on the nickname&mdash; click on the the "bus to tennis club" text at the top of 
+         the box, and that box will collapse. You can re-expand it by clicking on the nickname again. <p/>
+        You can re-order your list of bus alarms by dragging a nickname and dropping it onto another nickname;
+         the dragged Bus Alarm will move to the position in the list where you dropped it.<p/>
+         If a particular Bus Alarm is no longer of interest, open the settings for that Bus Alarm by clicking
+         on the gear icon, and click the "remove" button.
+        <h3>Alerting yourself on when it's time to go</h3> 
+          Click on the Settings button (with the gear icon) to configure when and how you're alerted that it's time
+         to go.
+         As your selected bus (or other transit) approaches your stop, the Bus Alarm will go on Green Alert, then
+         Yellow Alert, then Red Alert... and then disappear once you've missed it. 
+         <h4>Green Alert, and ignoring early buses</h4>
+           Should you be dressed by now? Do you have time to shampoo, or to cook eggs? Find out in a glance by
+         specifying when your Bus Alarm goes to Green Alert, which will indicate when you need to switch gears from
+          going around your usual business to expecting the bus to come pretty soon.<p/>
+         Of course, there's no point in getting your butt in gear for a bus that comes way earlier than when you
+           need to go, so you can check the option to not show you early buses... 
+            "early" being defined as a bus predicted
+           to come before a time that you can specify once you've checked that option.
+         <h4>Yellow Alert</h4>
+           Let's say you want to give yourself 4 minutes for shoes,
+         outerwear, and final bag check; and 5 minutes for a leasurely walk to the bus stop. 
+         Adjust the Yellow Alert time to 9 minutes, to give yourself that amount of warning.
+          Check the "Beep during Yellow Alert" option to get
+         an audible Yellow Alert. The Bus Alarm will only beep during the time window that you specify, and if
+         you re-load this page, any audible alerts will have been turned off. 
+         <h4>Red Alerts, and ignoring buses you've missed</h4>
+         Suppose you want to allow 5
+         minutes to walk to the bus stop... although maybe, <em>just maybe,</em> if you ran, and the bus is just a 
+         bit tardy, you could make it to a bus arriving in 2 minutes. Set the Red Alert to start when the bus is 
+          5 minutes away. Since you've <em>probably</em> missed any bus that's predicted to come 
+        within 2 minutes, you may
+         want to check the option to not show "immediate" buses, and define "immediate" as those coming within 2
+         minutes.
+      </div>
+    </div>
+    <div id="app">
+      <div v-for="transit in transits" >
+        <fieldset class="details" :style="transit.soonestBusStyleObject" draggable="true" :id="transit.settings.elmID" 
+            v-on:dragstart="drag" v-on:dragover="allowDrop" v-on:drop="drop" >
+          <legend v-on:click="toggleTransit" :id="transit.settings.elmID+'_toggle'" >  
+            {{ transit.settings.nickname }} 
+          </legend>
+          <div class="row">
+            <div :class="transit.nextBusWidthClass" >
+              <div v-show="transit.showDetail" class="transit" > 
+                Next {{ transit.settings.route }} {{ transit.settings.transitType }}  
+                from {{ transit.settings.stopName }} </br>
+                going {{ transit.settings.direction }}: </br>
+                {{ transit.soonest }} {{ transit.errorText }} 
+                <p class="transitAlert" v-show="transit.alertBanner" > 
+                  <span v-show="!transit.showFullAlert"> {{ transit.alertBanner }} </span>
+                  <button v-on:click="showFullAlert" :id="transit.settings.elmID+'_show'" class="intextbutton"
+                           v-show="!transit.showFullAlert" >...</button>
+                  <span v-show="transit.showFullAlert" > {{ transit.alertDetail }}  </span>
+                </p>
+              </div>
+            </div>
+            <div class="col-3" v-show="transit.showSettings && transit.showDetail" >
+              Green Alert when within <input v-model.number="transit.settings.greenMinutes" type="number" 
+                      :id="transit.settings.elmID+'_green'"
+                     :min="transit.settings.yellowMinutes" max="480" v-on:blur="applyConstraints" /> minutes <br/>
+              <input type="checkbox" :id="transit.settings.elmID+'_mintime'" 
+                    v-model="transit.settings.ignoreEarlyBusses" /> 
+              <label :for="transit.settings.elmID+'_mintime'">Don't show any early {{ transit.settings.transitType }} 
+              </label> <br/>
+              <span v-if="transit.settings.ignoreEarlyBusses" >
+                coming before: <input v-model="transit.settings.earlyTime" type="time" /> <br/>
+              </span>
+              <br/>
+              Yellow Alert when within <input v-model.number="transit.settings.yellowMinutes" type="number" 
+                    :id="transit.settings.elmID+'_yellow'"
+                    :min="transit.settings.redMinutes" :max="transit.settings.greenMinutes" 
+                    v-on:blur="applyConstraints" /> minutes <br/>
+              <div class="tooltip" >
+                <input type="checkbox" :id="transit.settings.elmID+'_beep'"
+                      v-model="transit.doBeep" />
+                <label :for="transit.settings.elmID+'_beep'">Beep during Yellow Alert</label> <br/>
+                <span class="tooltiptext ttleft hideOnMobile">
+                  Note: This setting is not saved if you re-load the page.
+                </span>
+              </div><br/>
+              <span v-if="transit.doBeep" >
+                with volume: <input v-model.number="transit.settings.beepVolume" min="0" max="300" type="number" /> 
+                <br/>
+                and frequency: <input v-model.number="transit.settings.beepFreq" min="20" max="5000" type="number" /> 
+                <br/>
+                for duration: 
+                <input v-model.number="transit.settings.beepDuration" min="100" max="300" type="number" /> 
+                <br/>
+	        every 
+                <input v-model.number="transit.settings.repeatInterval" :min="minBeepRepeatInterval" type="number" />
+                seconds
+                between <input v-model="transit.settings.minBeepTime" type="time" /> 
+                and <input v-model="transit.settings.maxBeepTime" type="time" />
+                <br/>
+              </span> <br/>
+              Red Alert when within <input v-model="transit.settings.redMinutes" type="number" 
+                    :id="transit.settings.elmID+'_red'"
+                      min="0" :max="transit.settings.yellowMinutes" v-on:blur="applyConstraints" /> minutes <br/>
+              <input type="checkbox" :id="transit.settings.elmID+'_checkbox'" 
+                    v-model="transit.settings.ignoreImmediateBusses" />
+              <label :for="transit.settings.elmID+'_checkbox'">Don't show immediate {{ transit.settings.transitType }}
+              </label> <br/>
+              <span v-if="transit.settings.ignoreImmediateBusses"> 
+                coming within: <input v-model="transit.settings.immediateThreshold" type="number" 
+                          min="0" max="99" /> minutes <br/>
+              </span> 
+              <br/>
+              <button v-on:click="deleteTransit" :id="transit.settings.elmID+'_remove'">remove</button>
+              <!-- <div>
+                uncommenting this div can be useful for debugging
+                {{ transit.lastMod }}    
+                <div v-for="time in transit.times">{{ time }}<p/><p/></div>
+                <pre style="color:green; font-weight: bold;" >{{ transit.rawww }} </pre>    
+               </div>  -->  
+            </div>  <!-- END column -->
+            <div class="col-1" >
+              <button class="corner" v-show="transit.showDetail" 
+                style="font-size:24px" v-on:click="toggleShowingSettings" :id="transit.settings.elmID+'_settings'">
+                <i :id="transit.settings.elmID+'_cog'" class="fa fa-cog"></i></button>
+            </div>
+          </div>  <!-- END row -->
+        </fieldset>
+      </div>
+    </div>
+    <div id="stoppicker"  >
+      <button v-on:click="toggleVisibility" type="button" :class="collapseButtonClass" >
+        <i :class="iconClass"></i>
+        {{ command }} Route, Direction, and Stop Picker
+      </button>
+      <div v-show="visible" >  <!-- use v-show not v-if because Google map 
+                                 doesn't like being taken out and added back to the DOM -->
+        <div class="row">
+          <div class="col-6" >
+            <div id="map" v-show="latitude" ></div>  
+          </div>
+          <div class="col-6" >
+            <div class="hideOnMobile" >
+              <div class="tooltip">
+                Latitude: <input v-model="latitude" />
+                <span class="tooltiptext ttleft">
+                  If you know the coordinates of where you want to catch your bus, train, or ferry from, you can fill
+                  them in here. Otherwise, no worries; searching on an address will look up the coordinates for you;
+                  and moving around in the map will update the coordinates.
+                </span>
+              </div>
+              <div class="tooltip">
+                Longitude: <input v-model="longitude" > <br/>
+                <span class="tooltiptext ttleft">
+                  If you know the coordinates of where you want to catch your bus, train, or ferry from, you can fill
+                  them in here. Otherwise, no worries; searching on an address will look up the coordinates for you;
+                  and moving around in the map will update the coordinates.
+                </span>
+              </div>
+              <p/>
+            </div>
+            <span class="tooltip">
+              Search Near Address: 
+              <input v-model="address" v-on:keyup="detectEnter" v-on:blur="lookUpAddress" id="address"
+                   tabindex="1" size="50"  />  
+              <button hidden="hidden" v-on:click="lookUpAddress">Look Up Address</button> <!-- We don't need to SHOW 
+                   this button, as it is triggered when hitting enter or tab from the address input. -->
+              <span class="tooltiptext ttright hideOnMobile" v-show="!address" >
+                Look up the coordinates of an address near where you want to catch your bus, train, or ferry
+                by typing in the address and then pressing the tab key.</span>
+            </span>
+            <p/>
+            <div class="tooltip" >
+              Route: <input v-model="route" list="routes" tabindex="2" v-on:keyup="blurOnDetectEnter" size="15"  >
+              <datalist id="routes" >
+                <div v-for="r in routes" >
+                  <option :value="r">
+                </div>
+              </datalist>
+              <span class="tooltiptext ttright hideOnMobile" v-show="!route" >
+                Type in the bus number or line color to search. To list commuter rail lines, enter "cr". 
+                To list ferries, enter "boat". Select from the list to get the exact identifier of the transit
+                you want to choose.
+              </span>
+            </div>
+            <div id="stop_options" >
+              <div class="tooltip" v-show="route" style="padding:5px"  >
+                <div v-for="direction in directions">
+                  <input type="radio" :id="direction.label" :value="direction.id" 
+                    v-model="pickedDirection" />
+                  <label :for="direction.label"> {{ direction.name }} </label>
+                </div>
+                <span class="tooltiptext ttright hideOnMobile" v-show="!isDirectionPicked" >
+                  You must pick the direction you want to travel in. 
+                </span>
+              </div>
+              <br/>
+              <div v-show="route && isDirectionPicked" style="height:4em;padding:5px" class="tooltip" >
+                <em> {{ nostop }} </em>
+                <div v-for="stop in stops">
+                  <input type="radio" :id="stop.label" :value="stop.id"  v-model="pickedStop" />
+                  <label :for="stop.label"> {{ stop.name }} </label>
+                </div>
+                <span class="tooltiptext ttright hideOnMobile" v-show="!pickedStop" >
+                  Which stop is convenient to you? (You can scroll the map to find other stops.)
+                </span>
+                <p/>
+              </div>
+              <br/>
+              <div class="tooltip" style="padding:10px 0px" >
+                Nickname: <input id="nickname" v-model="nickname" tabindex="3"/> 
+                <span class="tooltiptext ttright hideOnMobile">
+                  You may give the bus, train, or ferry you want to catch a nickname.
+                </span>
+              </div>
+            </div>  <!-- END stopoptions -->
+            <div class="tooltip" style="float:right" >
+              <button :disabled="!addStopSeen" v-on:click="addStop" :class="addStopStyle"
+                     style="font-size:15px;border:none;background-color:MEDIUMSPRINGGREEN;padding:10px;margin:5px;">
+                <b>Add Stop to Watch List</b>
+              </button>
+              <span class="tooltiptext ttleft hideOnMobile" >
+                {{ addStopTooltip }} 
+              </span>
+            </div>
+          </div> <!-- END col-6 -->
+        </div> <!-- END row -->
+      </div>  <!-- END if-visible -->
+    </div>  <!-- END stopPickerVue's el -->
+  </body>
+  <script src="mbtakey.js" ></script>
+  <script src="mbtafetch.js" ></script>
+<!--
+  
+MIT License
+
+Copyright (c) 2020 Alex Morgan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+</html>
+
