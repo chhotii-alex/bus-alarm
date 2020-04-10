@@ -1,1 +1,1 @@
-cat mbta.head.html googkey.html mbta.body.html >mbta.html
+include mbta.html.include >mbta.html
