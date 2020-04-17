@@ -109,6 +109,10 @@
       #map {
         height: 200px;
       }
+      .errortext {
+        color: #FF0000;
+        font-style: italic;
+      }
       .intextbutton {
         border: none;
         background-color: Transparent;
@@ -415,6 +419,7 @@
               </div>
               <p/>
             </div>
+            <span class="errortext"> {{ errorText }} </span><br/>
             <span class="tooltip">
               Search Near Address: 
               <input v-model="address" v-on:keyup="detectEnter" v-on:blur="lookUpAddress" id="address"

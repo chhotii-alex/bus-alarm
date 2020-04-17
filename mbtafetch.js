@@ -766,13 +766,13 @@ SOFTWARE.
         latitude: 42.356334,  // defaults to Park Street Station
         longitude: -71.062365,
         radius: 2,  // approximately in miles (see MBTA documentation)
-        results: '',
         nostop: '',
         stops: [],
         pickedStop: "",
         nickname: "",
         routes: [  ],
         googleMap: null,
+        errorText: "",
       },
       mounted () {
         this.fetchRouteNames();
@@ -909,6 +909,7 @@ SOFTWARE.
           let theVue = this;
           return function(results, status) {
             if (status === google.maps.places.PlacesServiceStatus.OK) {
+		this.$data.errorText = "";
               var location = results[0].geometry.location;
               if (location) {
                 theVue.$data.latitude = location.lat();
@@ -924,6 +925,21 @@ SOFTWARE.
                 document.getElementById('map').scrollIntoView();
                 document.getElementById('stop_options').scrollIntoView();
               });            
+            }  // END if status OK
+            else if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT ||
+		     status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+		theVue.$data.errorText = "Address lookup failed: too many requests on this Google API key.";
+            } 
+            else if (status === google.maps.places.PlacesServiceStatus.NOT_FOUND ||
+		     status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS ||
+		     status === google.maps.places.PlacesServiceStatus.INVALID_REQUEST) {
+                theVue.$data.errorText = "Could not find this address.";
+            }
+            else if (status === google.maps.places.PlacesServiceStatus.UNKNOWN_ERROR) {
+                theVue.$data.errorText = "Could not look up address. Please try again later.";
+            } 
+            else {
+                theVue.$data.errorText = "Unknown error while trying to look up address.";
             }
           };
         },
@@ -978,7 +994,6 @@ SOFTWARE.
                .then(response => this.displayRouteInfo(response));
         },
         displayRouteInfo: function(response) {
-          this.$data.results = pretty(response.data.data.attributes);
           var data = response.data.data;
           this.$data.directions = [];
           var i;
@@ -1007,7 +1022,6 @@ SOFTWARE.
           if (!this.$data.stops.length) {
             this.$data.nostop = 'No stops for ' + this.$data.route + ' near the currently selected location.';
           }
-          this.$data.results = pretty(response.data.data);
           this.$nextTick(function() { // make all buttons scroll into view when they're created
             this.$el.scrollIntoView();
           });
