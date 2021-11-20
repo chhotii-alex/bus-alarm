@@ -909,7 +909,7 @@ SOFTWARE.
           let theVue = this;
           return function(results, status) {
             if (status === google.maps.places.PlacesServiceStatus.OK) {
-		this.$data.errorText = "";
+		theVue.$data.errorText = "";
               var location = results[0].geometry.location;
               if (location) {
                 theVue.$data.latitude = location.lat();
